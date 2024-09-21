@@ -19,7 +19,6 @@ import "forge-std/console2.sol";
 contract TimeBasedVolatilityFeeHook is Test, Deployers {
     using SafeCast for *;
 
-    // TODO: Initialize this test with your hook. You will pass in your hook implementation before each test to set this.
     address hook;
     address user = address(0xBEEF);
 
@@ -27,9 +26,8 @@ contract TimeBasedVolatilityFeeHook is Test, Deployers {
         initializeManagerRoutersAndPoolsWithLiq(IHooks(address(0)));
     }
 
-    function test_exampleHook_beforeSwap() public {
-        // TODO: This is where you pass in your hook's implementation.
-        address impl = address(new ExampleHook(manager));
+    function test_timeBasedVolatilityFeeHook_beforeSwap() public {
+        address impl = address(new TimeBasedVolatilityFeeHook(manager));
         _setUpBeforeSwapHook(impl);
 
         _setApprovalsFor(user, address(Currency.unwrap(key.currency0)));
@@ -40,12 +38,10 @@ contract TimeBasedVolatilityFeeHook is Test, Deployers {
         key.currency1.transfer(address(hook), 10e18);
 
         // Seeds liquidity into the user.
-
         key.currency0.transfer(address(user), 10e18);
         key.currency1.transfer(address(user), 10e18);
 
         // Seed liquidity into the user.
-
         uint256 userBalanceBefore0 = currency0.balanceOf(address(user));
         uint256 userBalanceBefore1 = currency1.balanceOf(address(user));
 
@@ -105,6 +101,8 @@ contract TimeBasedVolatilityFeeHook is Test, Deployers {
             assertEq(userBalanceAfter1, userBalanceBefore1 - amountToSwap, "amount 1");
         }
     }
+
+    // TODO: change the value of the Oracle and check the output
 
     /// INTERNAL HELPER FUNCTIONS ///
 
