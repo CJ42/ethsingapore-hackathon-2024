@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+// interfaces
+import {AggregatorV3Interface} from "foundry-chainlink-toolkit/src/interfaces/feeds/AggregatorV3Interface.sol";
 import {IVolatilityOracle} from "./IVolatilityOracle.sol";
 
 // https://docs.chain.link/data-feeds/price-feeds/addresses?network=ethereum&page=1
@@ -26,7 +28,9 @@ contract ChainLinkVolatilityOracle is IVolatilityOracle {
     AggregatorV3Interface internal volatilityFeed30Days;
 
     constructor() {
-        // priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
+        volatilityFeed24Hours = AggregatorV3Interface(ChainLinkOracleEthUsd.REALIZED_VOLATILITY_24HOURS);
+        volatilityFeed7Days = AggregatorV3Interface(ChainLinkOracleEthUsd.REALIZED_VOLATILITY_30DAYS);
+        volatilityFeed30Days = AggregatorV3Interface(ChainLinkOracleEthUsd.REALIZED_VOLATILITY_7DAYS);
     }
 
     function getLatestPrice() public view returns (int256) {
