@@ -12,6 +12,7 @@ import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
 // libraries
 import {Hooks, IHooks} from "v4-core/src/libraries/Hooks.sol";
 import {PoolId, PoolIdLibrary} from "v4-core/src/types/PoolId.sol";
+import {FullMath} from "v4-core/src/libraries/FullMath.sol";
 
 // constants
 import {PoolKey} from "v4-core/src/types/PoolKey.sol";
@@ -25,6 +26,9 @@ import "./Errors.sol" as Errors;
 /// @author Jean Cavallera <CJ42>, Hugo Masclet <Hugoo>
 contract TimeBasedVolatilityFeeHook is BaseHook {
     using PoolIdLibrary for PoolKey;
+
+    // Basis points to calculate percentages for the weighted average (1 % = 100 bps)
+    uint256 internal constant _BASIS_POINTS_BASE = 10_000;
 
     // Volatility thresholds
     uint256 public constant HIGH_VOLATILITY_TRIGGER = 1_400; // 14%
@@ -143,29 +147,40 @@ contract TimeBasedVolatilityFeeHook is BaseHook {
             return LOW_VOLATILITY_FEE;
         }
 
-        if (weightedVolatility < thresholdLow) {
-    //         return lowFee; // e.g., 0.05%
-    //     } else if (weightedVolatility < thresholdHigh) {
-    //         return mediumFee; // e.g., 0.3%
-    //     } else {
-    //         return highFee; // e.g., 1%
-    //     }
+        // if (weightedVolatility < thresholdLow) {
+        //         return lowFee; // e.g., 0.05%
+        //     } else if (weightedVolatility < thresholdHigh) {
+        //         return mediumFee; // e.g., 0.3%
+        //     } else {
+        //         return highFee; // e.g., 1%
+        //     }
     }
 
     // Update function based on external oracle
     // the volatility is weighted more heavily toward the short term (1-minute)
     // but also takes into account longer time frames to prevent overreaction to price spikes.
-    function updateVolatility(uint256 vol1Min, uint256 vol1Hour, uint256 vol1Day) external onlyVolatilityOperator {
+    function updateVolatility(uint256 vol1Min, uint256 vol1Hour, uint256 vol1Day) external {
         volatilityMinute = vol1Min;
         volatilityHour = vol1Hour;
         volatilityDay = vol1Day;
 
         // Calculate weighted average
-        weightedVolatility = (volatilityMinute * 0.5) + (volatilityHour * 0.3) + (volatilityDay * 0.2);
+
+        // 50%
+        uint256 weightedVolatilityMinute =
+            FullMath.mulDiv({a: volatilityMinute, b: 5_000, denominator: _BASIS_POINTS_BASE});
+
+        // 30%
+        uint256 weightedVolatilityHour = FullMath.mulDiv({a: volatilityHour, b: 3_000, denominator: _BASIS_POINTS_BASE});
+
+        // 20%
+        uint256 weightedVolatilityDay = FullMath.mulDiv({a: volatilityDay, b: 2_000, denominator: _BASIS_POINTS_BASE});
+
+        weightedVolatility = weightedVolatilityMinute + weightedVolatilityHour + weightedVolatilityDay;
     }
 
     // // Return the fee based on the weighted volatility
     // function getSwapFee() external view returns (uint256) {
-    //     
+    //
     // }
 }

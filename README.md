@@ -53,6 +53,27 @@ The `PoolManager` uses permissions to determine which hook functions to call f
 
 Since we used the Uniswap v4 hooks only for operations related to swapping, we specified only the permissions for the `beforeSwap` and `afterSwap` in the hook contract.
 
+```solidity
+function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
+    return Hooks.Permissions({
+        beforeInitialize: false,
+        afterInitialize: false,
+        beforeAddLiquidity: false,
+        afterAddLiquidity: false,
+        beforeRemoveLiquidity: false,
+        afterRemoveLiquidity: false,
+        beforeSwap: true,
+        afterSwap: true,
+        beforeDonate: false,
+        afterDonate: false,
+        beforeSwapReturnDelta: false,
+        afterSwapReturnDelta: false,
+        afterAddLiquidityReturnDelta: false,
+        afterRemoveLiquidityReturnDelta: false
+    });
+}
+```
+
 ## Next steps
 
 If the hook contract exposes relevant variables, and function a frontend can nicely display the information to the user.
