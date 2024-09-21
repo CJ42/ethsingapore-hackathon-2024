@@ -53,6 +53,10 @@ The `PoolManager` uses permissions to determine which hook functions to call f
 
 Since we used the Uniswap v4 hooks only for operations related to swapping, we specified only the permissions for the `beforeSwap` and `afterSwap` in the hook contract.
 
+## Next steps
+
+If the hook contract exposes relevant variables, and function a frontend can nicely display the information to the user.
+
 ## Resources
 
 We have explored the following documentation pages to develop our submission:
