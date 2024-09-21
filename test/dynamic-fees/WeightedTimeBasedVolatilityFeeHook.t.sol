@@ -13,8 +13,9 @@ import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {Constants} from "v4-core/test/utils/Constants.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
 
-// Custom functionalities
+// Testing custom hook
 import {WeightedTimeBasedVolatilityFeeHook} from "../../src/WeightedTimeBasedVolatilityFeeHook.sol";
+import {ChainLinkVolatilityOracle} from "../../src/ChainLinkVolatilityOracle.sol";
 import {IVolatilityOracle} from "../../src/IVolatilityOracle.sol";
 
 import "forge-std/console2.sol";
@@ -32,11 +33,11 @@ contract WeightedTimeBasedVolatilityFeeHookTest is Test, Deployers {
         initializeManagerRoutersAndPoolsWithLiq(IHooks(address(0)));
 
         _feeInterval = 10 minutes;
-        _volatilityOracle = new IVolatilityOracle();
+        _volatilityOracle = new ChainLinkVolatilityOracle();
     }
 
     function test_timeBasedVolatilityFeeHook_beforeSwap() public {
-        address impl = address(new WeightedTimeBasedVolatilityFeeHook(manager, address(1), address(2)));
+        address impl = address(new WeightedTimeBasedVolatilityFeeHook(manager, _volatilityOracle, _feeInterval));
         _setUpBeforeSwapHook(impl);
 
         _setApprovalsFor(user, address(Currency.unwrap(key.currency0)));
@@ -115,7 +116,7 @@ contract WeightedTimeBasedVolatilityFeeHookTest is Test, Deployers {
 
     /// INTERNAL HELPER FUNCTIONS ///
 
-    function _printTestType(bool zeroForOne, int256 amountSpecified) internal {
+    function _printTestType(bool zeroForOne, int256 amountSpecified) internal pure {
         console2.log("--- TEST TYPE ---");
         string memory zeroForOneString = zeroForOne ? "zeroForOne" : "oneForZero";
         string memory swapType = amountSpecified < 0 ? "exactInput" : "exactOutput";
@@ -138,7 +139,7 @@ contract WeightedTimeBasedVolatilityFeeHookTest is Test, Deployers {
         (key,) = initPoolAndAddLiquidity(currency0, currency1, IHooks(hook), 100, SQRT_PRICE_1_1, ZERO_BYTES);
     }
 
-    function _defaultTestSettings() internal returns (PoolSwapTest.TestSettings memory testSetting) {
+    function _defaultTestSettings() internal pure returns (PoolSwapTest.TestSettings memory testSetting) {
         return PoolSwapTest.TestSettings({takeClaims: false, settleUsingBurn: false});
     }
 

@@ -33,25 +33,25 @@ contract ChainLinkVolatilityOracle is IVolatilityOracle {
         volatilityFeed30Days = AggregatorV3Interface(ChainLinkOracleEthUsd.REALIZED_VOLATILITY_7DAYS);
     }
 
-    function getLatestPrice() public view returns (int256) {
-        // (uint80 roundID, int256 price, uint256 startedAt, uint256 timeStamp, uint80 answeredInRound) =
-        //     priceFeed.latestRoundData();
-        // // for ETH / USD price is scaled up by 10 ** 8
-        // return price / 1e8;
+    function realizedVolatility24Hours() external view returns (int256) {
+        // Ignore the other returned values as we just need the feed answer (commented for brievity)
+        (, int256 volatility24Hours,,,) = volatilityFeed24Hours.latestRoundData();
 
-        return 3000;
+        return volatility24Hours;
     }
 
-    function realizedVolatility24Hours() external view returns (uint256) {
-        // TODO:
+    function realizedVolatility7Days() external view returns (int256) {
+        // Ignore the other returned values as we just need the feed answer (commented for brievity)
+        (, int256 volatility7Days,,,) = volatilityFeed7Days.latestRoundData();
+
+        return volatility7Days;
     }
 
-    function realizedVolatility7Days() external view returns (uint256) {
-        // TODO:
-    }
+    function realizedVolatility30Days() external view returns (int256) {
+        // Ignore the other returned values as we just need the feed answer (commented for brievity)
+        (, int256 volatility30Days,,,) = volatilityFeed30Days.latestRoundData();
 
-    function realizedVolatility30Days() external view returns (uint256) {
-        // TODO:
+        return volatility30Days;
     }
 
     function latestTimestamp() external view returns (uint256) {

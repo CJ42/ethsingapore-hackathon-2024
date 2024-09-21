@@ -126,7 +126,7 @@ contract WeightedTimeBasedVolatilityFeeHook is BaseHook {
     /// This helps smoothen the swap fee paid overall, and reduce the risk of paying high fees when volatility surge in short time periods.
     /// See function `calculateWeightedTimeVolatility(...)` for more details
     function getSwapFeeBasedOnWeightedVolatility() public view returns (uint24) {
-        (uint256 volatilityMinute, uint256 volatilityHour, uint256 volatilityDay) = _getVolatilityMetrics();
+        (int256 volatilityMinute, int256 volatilityHour, int256 volatilityDay) = _getVolatilityMetrics();
 
         uint256 currentWeightedVolatility =
             _calculateWeightedTimeVolatility(volatilityMinute, volatilityHour, volatilityDay);
@@ -146,7 +146,7 @@ contract WeightedTimeBasedVolatilityFeeHook is BaseHook {
     /// For more details, see Chainlink oracle docs:
     /// - https://docs.chain.link/data-feeds/rates-feeds#realized-volatility
     /// - https://docs.chain.link/data-feeds/rates-feeds/addresses?network=ethereum&page=1
-    function _getVolatilityMetrics() internal view returns (uint256, uint256, uint256) {
+    function _getVolatilityMetrics() internal view returns (int256, int256, int256) {
         return (
             VOLATILITY_ORACLE.realizedVolatility24Hours(),
             VOLATILITY_ORACLE.realizedVolatility7Days(),
@@ -157,20 +157,23 @@ contract WeightedTimeBasedVolatilityFeeHook is BaseHook {
     /// @dev Calculate weighted average volatility based on different time frames.
     // The volatility is weighted more heavily toward the short term (1-minute)
     // but also takes into account longer time frames to prevent overreaction to price spikes.
-    function _calculateWeightedTimeVolatility(uint256 volatilityMinute, uint256 volatilityHour, uint256 volatilityDay)
+    function _calculateWeightedTimeVolatility(int256 volatilityMinute, int256 volatilityHour, int256 volatilityDay)
         internal
         pure
         returns (uint256)
     {
         // 50%
         uint256 weightedVolatilityMinute =
-            FullMath.mulDiv({a: volatilityMinute, b: 5_000, denominator: _BASIS_POINTS_BASE});
+        // TODO: How to implement percentages on signed integers `intN`?
+         FullMath.mulDiv({a: uint256(volatilityMinute), b: 5_000, denominator: _BASIS_POINTS_BASE});
 
         // 30%
-        uint256 weightedVolatilityHour = FullMath.mulDiv({a: volatilityHour, b: 3_000, denominator: _BASIS_POINTS_BASE});
+        uint256 weightedVolatilityHour =
+            FullMath.mulDiv({a: uint256(volatilityHour), b: 3_000, denominator: _BASIS_POINTS_BASE});
 
         // 20%
-        uint256 weightedVolatilityDay = FullMath.mulDiv({a: volatilityDay, b: 2_000, denominator: _BASIS_POINTS_BASE});
+        uint256 weightedVolatilityDay =
+            FullMath.mulDiv({a: uint256(volatilityDay), b: 2_000, denominator: _BASIS_POINTS_BASE});
 
         return weightedVolatilityMinute + weightedVolatilityHour + weightedVolatilityDay;
     }
