@@ -12,11 +12,11 @@ import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {Constants} from "v4-core/test/utils/Constants.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
-import {ExampleHook} from "./ExampleHook.sol";
+import {TimeBasedVolatilityFeeHook} from "../../src/TimeBasedVolatilityFeeHook.sol";
 
 import "forge-std/console2.sol";
 
-contract ExampleHookTest is Test, Deployers {
+contract TimeBasedVolatilityFeeHook is Test, Deployers {
     using SafeCast for *;
 
     // TODO: Initialize this test with your hook. You will pass in your hook implementation before each test to set this.
