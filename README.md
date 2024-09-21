@@ -89,27 +89,12 @@ Alpha Hook implementation enhances Uniswap's volatility-based fee system using a
 
 Instead of reacting to short-term price spikes (which can make swap fee rise considerably at on these short time periods), The Alpha Hook contract calculates a weighted average of volatility over over 3 different time frame (24 hours, 7 days and 30 days) to smooth fee adjustments. This reduces drastic fee fluctuations and protects liquidity providers from short-lived volatility.
 
-To calculate the \textbf{weighted average of volatility based on time}, we used the following formula that assigns different weights to volatility measurements over various time frames. :
+To calculate the **weighted average of volatility based on time**, we used the following formula that assigns different weights to volatility measurements over various time frames:
 
-\[
-\text{Weighted Average Volatility} = (w_1 \times V_1) + (w_2 \times V_2) + (w_3 \times V_3) + \dots + (w_n \times V_n)
-\]
+![Math Formula for weighted average volatility](./weighted-volatility-formula.png)
 
-Where:
-\begin{itemize}
-  \item \(V_n\) is the volatility measured over a specific time frame (e.g., 1 minute, 1 hour, 1 day).
-  \item \(w_n\) is the weight assigned to each volatility time frame, with \(w_1 + w_2 + w_3 + \dots + w_n = 1\).
-\end{itemize}
-
-For example, if we have three time frames:
-
-\[
-\text{Weighted Average Volatility} = (0.5 \times V_1) + (0.3 \times V_2) + (0.2 \times V_3)
-\]
-
-This gives more emphasis to short-term volatility.
-
-
+> **Note:** this method gives more emphasis to _short-term volatility_ but still considers longer-term trends to smooth out the volatility measure. 
+> The weights could be adjusted according to how sensitive you want the fee system to be to different time frames. For instance one could put more weight on the 30 days time frame to make the fee more sensitive to the long term volatility (_e.g: 50 % instead of 20% in the current implementation_).
 
 
 ### Tech stack
