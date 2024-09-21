@@ -4,6 +4,8 @@ A project by [@CJ42](https://github.com/CJ42) and [@Hugoo](https://github.com/Hu
 
 This repo is based on [@uniswapfoundation/v4-template](https://github.com/uniswapfoundation/v4-template).
 
+[Project showcase on ETHGlobal website](https://ethglobal.com/showcase/alphahook-rqd6q).
+
 ## Description
 
 ### Uniswap V3

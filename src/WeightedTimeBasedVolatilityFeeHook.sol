@@ -29,12 +29,12 @@ contract WeightedTimeBasedVolatilityFeeHook is BaseHook {
 
     // Basis points to calculate percentages for the weighted average (1 % = 100 bps)
     // See: https://muens.io/solidity-percentages
-    uint256 internal constant _BASIS_POINTS_BASE = 10_000;
+    uint256 internal constant _BASIS_POINTS_BASE = 1_000_000; // 100 %
 
     // Volatility thresholds
-    uint256 public constant HIGH_VOLATILITY_TRIGGER = 1_400; // 14%
-    uint256 public constant MEDIUM_VOLATILITY_TRIGGER = 1_000; // 10%
-    uint256 public constant LOW_VOLATILITY_TRIGGER = 600; // 6%
+    uint256 public constant HIGH_VOLATILITY_TRIGGER = 140_000; // 14%
+    uint256 public constant MEDIUM_VOLATILITY_TRIGGER = 100_000; // 10%
+    uint256 public constant LOW_VOLATILITY_TRIGGER = 60_000; // 6%
 
     // Volatility fee tiers
     uint24 public constant HIGH_VOLATILITY_FEE = 10_000; // 1%
