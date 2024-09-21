@@ -24,10 +24,11 @@ import "./Errors.sol" as Errors;
 
 /// @title Hook contract for dynamic adjusted fees based volatility (weighted average)
 /// @author Jean Cavallera <CJ42>, Hugo Masclet <Hugoo>
-contract TimeBasedVolatilityFeeHook is BaseHook {
+contract WeightedTimeBasedVolatilityFeeHook is BaseHook {
     using PoolIdLibrary for PoolKey;
 
     // Basis points to calculate percentages for the weighted average (1 % = 100 bps)
+    // See: https://muens.io/solidity-percentages
     uint256 internal constant _BASIS_POINTS_BASE = 10_000;
 
     // Volatility thresholds
@@ -43,27 +44,15 @@ contract TimeBasedVolatilityFeeHook is BaseHook {
     /// @dev Oracle used to retrieve the current volatility of the pair
     IVolatilityOracle public immutable VOLATILITY_ORACLE;
 
-    /// @dev Address of the operator responsible for updating the volatility figures below
-    address public immutable VOLATILITY_UPDATER;
-
-    /// @dev Time intervale that fees are re-calculated based on the latest volatility figures
+    /// @dev Time interval that fees are re-calculated based on the latest volatility figures
     uint256 public immutable FEE_UPDATE_INTERVAL;
 
-    // Track volatility across different time frames
-    uint256 public volatilityMinute;
-    uint256 public volatilityHour;
-    uint256 public volatilityDay;
-
-    uint256 public weightedVolatility;
-
+    /// @dev Timestamp at which the fee were last updated
     uint256 public lastFeeUpdate;
 
-    constructor(
-        IPoolManager _poolManager,
-        IVolatilityOracle _volatilityOracle,
-        address _volatilityUpdater,
-        uint256 _feeInterval
-    ) BaseHook(_poolManager) {
+    constructor(IPoolManager _poolManager, IVolatilityOracle _volatilityOracle, uint256 _feeInterval)
+        BaseHook(_poolManager)
+    {
         if (_feeInterval < 1 minutes) {
             revert Errors.FeeIntervalTooSmall(_feeInterval);
         }
@@ -73,7 +62,6 @@ contract TimeBasedVolatilityFeeHook is BaseHook {
         }
 
         VOLATILITY_ORACLE = _volatilityOracle;
-        VOLATILITY_UPDATER = _volatilityUpdater;
         FEE_UPDATE_INTERVAL = _feeInterval;
     }
 
@@ -105,7 +93,7 @@ contract TimeBasedVolatilityFeeHook is BaseHook {
         int24, /* tick */
         bytes calldata /* hookData */
     ) external override returns (bytes4) {
-        uint24 initialFee = getWeightedTimeAverageFee();
+        uint24 initialFee = getSwapFeeBasedOnWeightedVolatility();
         poolManager.updateDynamicLPFee(key, initialFee);
         return IHooks.afterInitialize.selector;
     }
@@ -123,7 +111,7 @@ contract TimeBasedVolatilityFeeHook is BaseHook {
         bytes calldata /* hookData */
     ) external virtual onlyPoolManager returns (bytes4, BeforeSwapDelta, int128) {
         if (block.timestamp >= lastFeeUpdate + FEE_UPDATE_INTERVAL) {
-            uint24 newFee = getWeightedTimeAverageFee();
+            uint24 newFee = getSwapFeeBasedOnWeightedVolatility();
             lastFeeUpdate = block.timestamp;
 
             int128 overridenLpFee = int128(uint128(newFee | LPFeeLibrary.OVERRIDE_FEE_FLAG));
@@ -133,39 +121,47 @@ contract TimeBasedVolatilityFeeHook is BaseHook {
         return (IHooks.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
-    function getWeightedTimeAverageFee() public view returns (uint24) {
-        uint256 realizedVolatility = VOLATILITY_ORACLE.realizedVolatility();
+    /// dev Calculate the fee for the swap based on the volatility of the market.
+    /// The volatility is based on a time average formula, not on the volatility at the time the swap is made
+    /// This helps smoothen the swap fee paid overall, and reduce the risk of paying high fees when volatility surge in short time periods.
+    /// See function `calculateWeightedTimeVolatility(...)` for more details
+    function getSwapFeeBasedOnWeightedVolatility() public view returns (uint24) {
+        (uint256 volatilityMinute, uint256 volatilityHour, uint256 volatilityDay) = _getVolatilityMetrics();
 
-        uint256 currentWeightedVolatility = weightedVolatility;
+        uint256 currentWeightedVolatility =
+            _calculateWeightedTimeVolatility(volatilityMinute, volatilityHour, volatilityDay);
 
-        // TODO: change calculation based on weighted volatility
-        if (realizedVolatility > HIGH_VOLATILITY_TRIGGER) {
+        if (currentWeightedVolatility >= HIGH_VOLATILITY_TRIGGER) {
             return HIGH_VOLATILITY_FEE;
-        } else if (realizedVolatility > MEDIUM_VOLATILITY_TRIGGER) {
+        } else if (
+            currentWeightedVolatility > MEDIUM_VOLATILITY_TRIGGER && currentWeightedVolatility < HIGH_VOLATILITY_TRIGGER
+        ) {
             return MEDIUM_VOLATILITY_FEE;
         } else {
             return LOW_VOLATILITY_FEE;
         }
-
-        // if (weightedVolatility < thresholdLow) {
-        //         return lowFee; // e.g., 0.05%
-        //     } else if (weightedVolatility < thresholdHigh) {
-        //         return mediumFee; // e.g., 0.3%
-        //     } else {
-        //         return highFee; // e.g., 1%
-        //     }
     }
 
-    // Update function based on external oracle
-    // the volatility is weighted more heavily toward the short term (1-minute)
+    /// @dev Query oracle for various volatility metrics on ETH - USD market
+    /// For more details, see Chainlink oracle docs:
+    /// - https://docs.chain.link/data-feeds/rates-feeds#realized-volatility
+    /// - https://docs.chain.link/data-feeds/rates-feeds/addresses?network=ethereum&page=1
+    function _getVolatilityMetrics() internal view returns (uint256, uint256, uint256) {
+        return (
+            VOLATILITY_ORACLE.realizedVolatility24Hours(),
+            VOLATILITY_ORACLE.realizedVolatility7Days(),
+            VOLATILITY_ORACLE.realizedVolatility30Days()
+        );
+    }
+
+    /// @dev Calculate weighted average volatility based on different time frames.
+    // The volatility is weighted more heavily toward the short term (1-minute)
     // but also takes into account longer time frames to prevent overreaction to price spikes.
-    function updateVolatility(uint256 vol1Min, uint256 vol1Hour, uint256 vol1Day) external {
-        volatilityMinute = vol1Min;
-        volatilityHour = vol1Hour;
-        volatilityDay = vol1Day;
-
-        // Calculate weighted average
-
+    function _calculateWeightedTimeVolatility(uint256 volatilityMinute, uint256 volatilityHour, uint256 volatilityDay)
+        internal
+        pure
+        returns (uint256)
+    {
         // 50%
         uint256 weightedVolatilityMinute =
             FullMath.mulDiv({a: volatilityMinute, b: 5_000, denominator: _BASIS_POINTS_BASE});
@@ -176,11 +172,6 @@ contract TimeBasedVolatilityFeeHook is BaseHook {
         // 20%
         uint256 weightedVolatilityDay = FullMath.mulDiv({a: volatilityDay, b: 2_000, denominator: _BASIS_POINTS_BASE});
 
-        weightedVolatility = weightedVolatilityMinute + weightedVolatilityHour + weightedVolatilityDay;
+        return weightedVolatilityMinute + weightedVolatilityHour + weightedVolatilityDay;
     }
-
-    // // Return the fee based on the weighted volatility
-    // function getSwapFee() external view returns (uint256) {
-    //
-    // }
 }

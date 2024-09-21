@@ -12,22 +12,31 @@ import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 import {Constants} from "v4-core/test/utils/Constants.sol";
 import {MockERC20} from "solmate/src/test/utils/mocks/MockERC20.sol";
-import {TimeBasedVolatilityFeeHook} from "../../src/TimeBasedVolatilityFeeHook.sol";
+
+// Custom functionalities
+import {WeightedTimeBasedVolatilityFeeHook} from "../../src/WeightedTimeBasedVolatilityFeeHook.sol";
+import {IVolatilityOracle} from "../../src/IVolatilityOracle.sol";
 
 import "forge-std/console2.sol";
 
-contract TimeBasedVolatilityFeeHook is Test, Deployers {
+contract WeightedTimeBasedVolatilityFeeHookTest is Test, Deployers {
     using SafeCast for *;
 
     address hook;
     address user = address(0xBEEF);
 
+    uint256 _feeInterval;
+    IVolatilityOracle _volatilityOracle;
+
     function setUp() public {
         initializeManagerRoutersAndPoolsWithLiq(IHooks(address(0)));
+
+        _feeInterval = 10 minutes;
+        _volatilityOracle = new IVolatilityOracle();
     }
 
     function test_timeBasedVolatilityFeeHook_beforeSwap() public {
-        address impl = address(new TimeBasedVolatilityFeeHook(manager));
+        address impl = address(new WeightedTimeBasedVolatilityFeeHook(manager, address(1), address(2)));
         _setUpBeforeSwapHook(impl);
 
         _setApprovalsFor(user, address(Currency.unwrap(key.currency0)));

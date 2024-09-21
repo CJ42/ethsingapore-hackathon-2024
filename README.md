@@ -8,7 +8,7 @@ This repo is based on [@uniswapfoundation/v4-template](https://github.com/uniswa
 
 ### Uniswap V3
 
-In Uniswap V3, fees are fixed within each specific pool. As a result, for certain trades, the router may need to execute swaps across multiple pools. The fee structure is closely related to the price volatility of a trading pair. For stable pairs, such as USDC/USDT, low-fee pools are typically favored. Conversely, for high-volatility pairs, liquidity providers tend to prefer pools with higher fees to better compensate for the risks involved.
+In [Uniswap V3](https://docs.uniswap.org/contracts/v3/overview), fees are fixed within each specific pool. As a result, for certain trades, the router may need to execute swaps across multiple pools. The fee structure is closely related to the price volatility of a trading pair. For stable pairs, such as USDC/USDT, low-fee pools are typically favored. Conversely, for high-volatility pairs, liquidity providers tend to prefer pools with higher fees to better compensate for the risks involved.
 
 ```mermaid
 graph LR
@@ -29,7 +29,7 @@ One challenge with this architecture is that liquidity can become "trapped" in a
 
 ### Uniswap V4
 
-On Uniswap V4, we can leverage hooks to adjust the fees automatically. In this project, we show a way to adjust the pool fees dynamically.
+In [Uniswap V4](https://docs.uniswap.org/contracts/v4/overview), we can leverage hooks to adjust the fees automatically. In this project, we show a way to adjust the pool fees dynamically, by using external data from Chainlink oracles.
 
 ```mermaid
 graph LR
@@ -38,6 +38,7 @@ graph LR
     subgraph Pool V4 A/B
     C[Dynamic Fees]
     end
+    C <--> D([🔮 Oracle])
 ```
 
 ## Implementation
@@ -74,17 +75,27 @@ function getHookPermissions() public pure override returns (Hooks.Permissions me
 }
 ```
 
+### Tech stack
+
+- [Uniswap V4](https://docs.uniswap.org/contracts/v4/overview)
+- [Chainlink](https://chain.link/)
+- [Next.js](https://nextjs.org/)
+- [Foundry](https://book.getfoundry.sh/)
+
 ## Next steps
 
-If the hook contract exposes relevant variables, and function a frontend can nicely display the information to the user.
+If the hook contract exposes relevant variables and function, a frontend can nicely display the information to the user.
 
 ## Resources
 
 We have explored the following documentation pages to develop our submission:
 
-- https://docs.uniswap.org/contracts/v4/concepts/hooks
-- https://docs.uniswap.org/contracts/v4/guides/hooks/swap
+- **To learn how Uniswap v4 hooks work:** https://docs.uniswap.org/contracts/v4/concepts/hooks
+- **To learn how to build custom hooks for swaps:** https://docs.uniswap.org/contracts/v4/guides/hooks/swap
+- **To calculate percentages in the weighted time average volatility formula:** https://muens.io/solidity-percentages
+- **To learn more about Chainlink data feeds:** https://docs.chain.link/data-feeds/rates-feeds#realized-volatility
 
 ## Feedback
 
+- The [template repo](https://github.com/uniswapfoundation/v4-template) is just amazing and a very great place to start 👏.
 - When searching "Uniswap V4" on Google, the first link to <https://docs.uniswap.org/contracts/v4/concepts/intro-to-v4> is a broken link. Maybe a redirect can be added to fix this.
